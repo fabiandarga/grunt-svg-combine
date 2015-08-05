@@ -45,10 +45,12 @@ module.exports = function(grunt) {
 
 		// Each destination
 		this.files.forEach(function(f) {
-			var destinationContent = ''; // Contains svg's
-			
+
+			var destinationContent = '<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"'
+			+ ' width="50px" height="50px" viewBox="0 0 50 50" enable-background="new 0 0 50 50" xml:space="preserve"><defs>'; // Contains svg's
+
 			totalFiles += f.src.length;
-		
+
 			// Check path
 			f.src.filter(function(filePath){
 
@@ -61,7 +63,7 @@ module.exports = function(grunt) {
 					return true;
 				}
 
-				
+
 			})
 			// Loop through src files
 			.map(function(filePath){
@@ -72,7 +74,7 @@ module.exports = function(grunt) {
 					svgo.optimize(grunt.file.read(filePath), function(result) {
 						// Error
 						if (result.error){ return grunt.warn('Error parsing SVG: (' + filePath + ') ' + result.error);}
-						
+
 						svgContent = result.data;
 					});
 				}else{
@@ -83,21 +85,23 @@ module.exports = function(grunt) {
 					fileName = path.basename(filePath, '.svg'); // u should be able to figure this one out
 
 				// Sets id
-				svg.attr('id', options.prefix + fileName);
+				var group = cheerio.load('<g></g>')('g');
+					group.attr('id', options.prefix + fileName);
+					group.append(svg.children());
 
 				if(typeof filter === "function"){
-					filter(svg, fileName, filePath);
+					filter(group, fileName, filePath);
 				}
 
 				grunt.log.writeln(filePath + ' (' + prettyBytes(svgContent.length) + ')');
 
 				// Stores svg with linebreak
-				destinationContent += svg + '\n';
+				destinationContent += group + '\n';
 
-				bytesSaved += svgContent.length - svg.html().length;
+				bytesSaved += svgContent.length - group.html().length;
 
 			});
-
+			destinationContent += '</defs></svg>';
 			// Save
 			if(options.append && writtenFiles.indexOf(f.dest) !== -1){
 				var temp = grunt.file.read(f.dest);
